@@ -72,8 +72,8 @@ mkdir -p ~/safa-swarm-deploy/postgres/{secrets,init} \
 ```bash
 find ~/safa-shop ~/safa-swarm-deploy -type d | sort
 ```
+![Alt text](images/Screenshot from 2026-09-30 00-49-18.png)
 
-![[./images/Screenshot from 2026-09-30 00-49-18.png]]
 
 ## 2. Initialize the Swarm
 
