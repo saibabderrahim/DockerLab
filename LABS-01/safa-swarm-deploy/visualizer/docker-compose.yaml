@@ -1,0 +1,16 @@
+services:
+  visualizer:
+    image: dockersamples/visualizer
+    ports:
+      - "8000:8080"
+    networks:
+      - bank-net
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+networks:
+  bank-net:
+    driver: overlay

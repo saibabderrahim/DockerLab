@@ -35,20 +35,6 @@ services:
         delay: 10s
         order: start-first
 
-
-
-
-
-
-
-
-
-
-
-      #update_config:
-      #  parallelism: 1
-      #  order: start-first
-
 configs:
   nginx_conf:
     file: ./config/nginx.conf
