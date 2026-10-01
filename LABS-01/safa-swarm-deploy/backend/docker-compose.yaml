@@ -1,0 +1,71 @@
+services:
+  backend:
+    image: safa/backend:1.0            # built in Step 4; NOT built here
+    networks:
+      - frontend-net               # reachable by nginx
+      - backend-net                # reachable to postgres / redis — the only bridging service
+    environment:
+      PYTHONUNBUFFERED: "1"
+      LOG_LEVEL: info
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      # Point the app at the secret files. The secrets themselves are declared
+      # top-level in postgres/ and redis/ — this service only references them.
+      POSTGRES_USER_FILE: /run/secrets/postgres_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB_FILE: /run/secrets/postgres_db
+      REDIS_PASSWORD_FILE: /run/secrets/redis_password
+    secrets:
+      # source = the api's OWN top-level secret (declared below); target = the
+      # filename under /run/secrets the app reads. Keeping the api's objects
+      # separate lets this file deploy on its own, in any order.
+      - source: api_postgres_user
+        target: postgres_user
+      - source: api_postgres_password
+        target: postgres_password
+      - source: api_postgres_db
+        target: postgres_db
+      - source: api_redis_password
+        target: redis_password
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      replicas: 9
+      restart_policy:
+        condition: on-failure
+        max_attempts: 0            # keep retrying — this is our "wait for the DB" mechanism
+        delay: 5s
+      update_config:
+        parallelism: 3
+        delay: 5s
+        order: start-first         # bring a new task up BEFORE killing the old one
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          cpus: "0.25"
+          memory: 128M
+
+# --- the api's OWN secrets (its own copies of the creds it consumes) ---
+secrets:
+  api_postgres_user:
+    file: ./secrets/postgres_user.txt
+  api_postgres_password:
+    file: ./secrets/postgres_password.txt
+  api_postgres_db:
+    file: ./secrets/postgres_db.txt
+  api_redis_password:
+    file: ./secrets/redis_password.txt
+
+networks:
+  frontend-net:
+    driver: overlay
+    attachable: true
+  backend-net:
+    driver: overlay
+    attachable: true

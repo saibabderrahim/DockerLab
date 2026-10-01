@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    networks:
+      - backend-net
+    environment:
+      # The official image reads these *_FILE vars and loads the secret contents.
+      POSTGRES_USER_FILE: /run/secrets/postgres_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB_FILE: /run/secrets/postgres_db
+    secrets:
+      - postgres_user
+      - postgres_password
+      - postgres_db
+    configs:
+      # Deliver the init SQL as a config mounted into the init hook dir — no bind mount.
+      - source: pg_init_sql
+        target: /docker-entrypoint-initdb.d/001_init.sql
+    volumes:
+      - pg_data:/var/lib/postgresql/data      # node-local named volume (see placement below)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$(cat /run/secrets/postgres_user) -d $$(cat /run/secrets/postgres_db)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    deploy:
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager   # pin the DB to this node so it always finds pg_data
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+
+# --- resources OWNED by the postgres service (declared here once for the whole stack) ---
+secrets:
+  postgres_user:
+    file: ./secrets/postgres_user.txt
+  postgres_password:
+    file: ./secrets/postgres_password.txt
+  postgres_db:
+    file: ./secrets/postgres_db.txt
+
+configs:
+  pg_init_sql:
+    file: ./init/001_init.sql
+
+networks:
+  backend-net:
+    driver: overlay
+    attachable: true
+
+volumes:
+  pg_data:
