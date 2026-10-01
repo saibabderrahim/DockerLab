@@ -1,6 +1,6 @@
 services:
   frontend:
-    image: safa/frontend:1.0          # built in Step 4
+    image: safa/frontend:v1.0          # built in Step 4
     command: ["nginx", "-g", "daemon off;"]
     networks:
       - frontend-net               # ONLY this network — no path to postgres/redis
@@ -20,12 +20,33 @@ services:
       start_period: 10s
 
     deploy:
-      replicas: 2
+      mode: replicated
+      replicas: 30
+      placement:
+        max_replicas_per_node: 30
+        constraints:
+          - "node.labels.front==true"
       restart_policy:
         condition: any
-      update_config:
-        parallelism: 1
-        order: start-first
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      #update_config:
+      #  parallelism: 1
+      #  order: start-first
 
 configs:
   nginx_conf:
