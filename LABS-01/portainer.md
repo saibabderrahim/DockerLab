@@ -1,0 +1,1 @@
+https://docs.portainer.io/start/install-ce/server/swarm/linux
