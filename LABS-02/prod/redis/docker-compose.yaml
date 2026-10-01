@@ -1,0 +1,35 @@
+services:
+  redis:
+    image: redis:7.4-alpine
+    networks:
+      - backend-net
+    secrets:
+      - redis_password
+    # redis-server can't read a password file directly, so read it inline at start.
+    # $$ escapes Compose interpolation → the container runs a literal $(cat ...).
+    command: ["sh", "-c", "redis-server --requirepass \"$$(cat /run/secrets/redis_password)\" --appendonly yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$(cat /run/secrets/redis_password)\" --no-auth-warning ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+
+secrets:
+  redis_password:
+    file: ./secrets/redis_password.txt
+
+networks:
+  backend-net:
+    driver: overlay
+    attachable: true
+
+volumes:
+  redis_data:

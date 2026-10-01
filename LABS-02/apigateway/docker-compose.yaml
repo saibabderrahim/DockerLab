@@ -1,0 +1,88 @@
+networks:
+  external-net:
+    driver: overlay
+    attachable: true
+
+configs:
+  config-apigateway_1:
+    file: ./configs/haproxy.cfg
+
+secrets:
+  config-apigateway-cert:
+    file: ./secrets/cert.pem
+
+services:
+  apigateway:
+    image: haproxy:3.4-alpine3.24  #haproxy:3.3.6 #haproxy:3.0-alpine  #haproxy:lts
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
+      #- target: 4435
+      #  published: 4435
+      #  protocol: tcp
+      #  mode: host
+    #dns: 127.0.0.11
+    deploy:
+      mode: global
+      placement:
+        constraints:
+          #- "node.hostname == dgf-prod-share"
+          - "node.labels.apigateway==true"
+      restart_policy:
+        condition: any
+    configs:
+      - source: config-apigateway_1
+        target: /usr/local/etc/haproxy/haproxy.cfg
+        uid: '0'
+        gid: '0'
+        mode: 0644
+    secrets:
+      - source: config-apigateway-cert
+        target: cert.pem
+        uid: '0'
+        gid: '0'
+        mode: 0644
+          #      - source: config-api-ca-cert
+          #        target: ca.pem
+          #        uid: '0'
+          #        gid: '0'
+          #        mode: 0644
+      #- source: config-apigateway-cert
+      #  target: collab-cert.pem
+      #  uid: '0'
+      #  gid: '0'
+      #  mode: 0644
+      #- source: config-office-cert
+      #  target: office-cert.pem
+      #  uid: '0'
+      #  gid: '0'
+      #  mode: 0644
+
+    networks:
+      external-net:
+        aliases:
+          - safa-dev.safa-groupe.dz
+          - safa-prod.safa-groupe.dz
+          - safa-preprod.safa-groupe.dz
+
+
+
+
+
+
+
+
+
+
+
+
+#    logging:
+#      driver: loki
+#      options:
+#        loki-url: "http://10.100.12.2:3100/loki/api/v1/push"

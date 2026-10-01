@@ -1,0 +1,40 @@
+services:
+  frontend:
+    image: safa/frontend:v2.0          # built in Step 4
+    command: ["nginx", "-g", "daemon off;"]
+    networks:
+      - frontend-net               # ONLY this network — no path to postgres/redis
+      - apigateway_external-net
+    #ports:
+    #  - target: 80
+    #    published: 8080
+    #    protocol: tcp
+    #    mode: ingress              # routing mesh: any node answers :8080
+    configs:
+      - source: nginx_conf
+        target: /etc/nginx/nginx.conf
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: any
+      update_config:
+        parallelism: 1
+        order: start-first
+
+configs:
+  nginx_conf:
+    file: ./config/nginx.conf
+
+networks:
+  frontend-net:
+    driver: overlay
+    attachable: true
+  apigateway_external-net:
+    external: true
